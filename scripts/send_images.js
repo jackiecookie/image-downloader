@@ -1,13 +1,47 @@
 (function () {
   /* globals chrome */
   'use strict';
-
+  
   const imageDownloader = {
+    title: undefined,
+
+    findTitle() {
+      if (this.title) return this.title;
+      let title = document.querySelectorAll('#mod-detail-title .d-title');
+      this.title = title[0].textContent;
+      return this.title;
+    },
+
+
+    findSkuSize(){
+      let sku = document.querySelectorAll('.table-sku .name span');
+      let skus = [];
+      for(let i = 0,len=sku.length;i<len;i++){
+        let s = sku[i];
+        skus.push(s.innerText)
+      }
+      return skus;
+    },
+
+    findColors(){
+      let colorsElm = document.querySelectorAll('.list-leading a');
+      let colors = [];
+      for(let i = 0,len=colorsElm.length;i<len;i++){
+        let s = colorsElm[i];
+        colors.push(s.title)
+      }
+      return colors;
+    },
+
     // Source: https://support.google.com/webmasters/answer/2598805?hl=en
+    //imageRegex: /(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*\.(?:bmp|gif|jpe?g|png|svg|webp))(?:\?([^#]*))?(?:#(.*))?/i,
     imageRegex: /(?:([^:\/?#]+):)?(?:\/\/([^\/?#]*))?([^?#]*\.(?:bmp|gif|jpe?g|png|svg|webp))(?:\?([^#]*))?(?:#(.*))?/i,
 
     extractImagesFromTags() {
-      return [].slice.apply(document.querySelectorAll('img, a, [style]')).map(imageDownloader.extractImageFromElement);
+     
+      //'img, a, [style]'
+      //#dt-tab img, #desc-lazyload-container img
+      return [].slice.apply(document.querySelectorAll('#dt-tab img, #desc-lazyload-container img')).map(imageDownloader.extractImageFromElement);
     },
 
     extractImagesFromStyles() {
@@ -34,6 +68,10 @@
       return imagesFromStyles;
     },
 
+
+
+
+
     extractImageFromElement(element) {
       if (element.tagName.toLowerCase() === 'img') {
         let src = element.src;
@@ -41,7 +79,9 @@
         if (hashIndex >= 0) {
           src = src.substr(0, hashIndex);
         }
-        return src;
+        if(src.indexOf('lazyload.png')===-1){
+          return src;
+        }
       }
 
       if (element.tagName.toLowerCase() === 'a') {
@@ -84,27 +124,36 @@
       const result = [];
       for (let key in hash) {
         if (key !== '') {
-          result.push(key);
+          result.push(key.replace(/.[0-9]+x[0-9]+/,''));
         }
       }
 
       return result;
     }
   };
+  window.scrollTo(0,document.body.scrollHeight)
+  setTimeout(function(){
+    imageDownloader.title = imageDownloader.findTitle();
 
-  imageDownloader.linkedImages = {}; // TODO: Avoid mutating this object in `extractImageFromElement`
-  imageDownloader.images = imageDownloader.removeDuplicateOrEmpty(
-    [].concat(
-      imageDownloader.extractImagesFromTags(),
-      imageDownloader.extractImagesFromStyles()
-    ).map(imageDownloader.relativeUrlToAbsolute)
-  );
-
-  chrome.runtime.sendMessage({
-    linkedImages: imageDownloader.linkedImages,
-    images: imageDownloader.images
-  });
-
-  imageDownloader.linkedImages = null;
-  imageDownloader.images = null;
+    imageDownloader.linkedImages = {}; // TODO: Avoid mutating this object in `extractImageFromElement`
+    imageDownloader.images = imageDownloader.removeDuplicateOrEmpty(
+      [].concat(
+        imageDownloader.extractImagesFromTags(),
+        //imageDownloader.extractImagesFromStyles()
+      ).map(imageDownloader.relativeUrlToAbsolute)
+    );
+  
+    chrome.runtime.sendMessage({
+      linkedImages: imageDownloader.linkedImages,
+      images: imageDownloader.images,
+      title: imageDownloader.title,
+      skus: imageDownloader.findSkuSize(),
+      colors:imageDownloader.findColors(),
+    });
+  
+    imageDownloader.linkedImages = null;
+    imageDownloader.images = null;
+    window.scrollTo(0,0)
+  },1000)
+ 
 }());

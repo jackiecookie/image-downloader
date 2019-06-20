@@ -1,12 +1,33 @@
 (function (ls) {
+
+  var copy = function (str, mimeType = 'text') {
+    document.oncopy = function (event) {
+      event.clipboardData.setData(mimeType, str);
+      event.preventDefault();
+    };
+    document.execCommand("copy", false, null);
+  }
+
   /* globals $, jss, chrome */
   /* jshint multistr: true */
   'use strict';
-
   function initializePopup() {
+    console.log(ls)
+    ls.folder_name = title;
+
+    $('#skuSize').val(skus.join(','))
+    $('#colors').val(colors.join(','))
+
+    $('.copy_btn').click(function () {
+      let $this = $(this);
+      let copy_target = $this.attr('copy_target');
+      let val = $(copy_target).val();
+      copy(val)
+    })
+
     // Register download folder name listener
     $('#folder_name_textbox')
-      .val(ls.folder_name)
+      .val(title)
       .on('change', function () {
         ls.folder_name = $.trim(this.value);
       });
@@ -150,17 +171,13 @@
       });
 
     // Get images on the page
-    chrome.windows.getCurrent(function (currentWindow) {
-      chrome.tabs.query({ active: true, windowId: currentWindow.id }, function (activeTabs) {
-        chrome.tabs.executeScript(activeTabs[0].id, { file: '/scripts/send_images.js', allFrames: true });
-      });
-    });
+
   }
 
   function suggestNewFilename(item, suggest) {
     var newFilename = '';
     if (ls.folder_name) {
-      newFilename = ls.folder_name + '/';
+      newFilename = ls.folder_name.replace(/[/\\\\:*?<>|]/, '') + '/';
     }
     if (ls.new_file_name) {
       var regex = /(?:\.([^.]+))?$/;
@@ -214,6 +231,9 @@
   var allImages = [];
   var visibleImages = [];
   var linkedImages = {};
+  var title = undefined;
+  let skus = [];
+  let colors = [];
 
   // Add images to `allImages` and trigger filtration
   // `send_images.js` is injected into all frames of the active tab, so this listener may be called multiple times
@@ -224,7 +244,11 @@
         allImages.push(result.images[i]);
       }
     }
+    title = result.title;
+    skus = result.skus;
+    colors = result.colors;
     filterImages();
+    initializePopup();
   });
 
   var timeoutID;
@@ -273,7 +297,7 @@
               break;
             case 'wildcard':
               filterValue = filterValue.replace(/([.^$[\]\\(){}|-])/g, '\\$1').replace(/([?*+])/, '.$1');
-              /* fall through */
+            /* fall through */
             case 'regex':
               visibleImages = visibleImages.filter(function (url) {
                 try {
@@ -298,13 +322,13 @@
         visibleImages = visibleImages.filter(function (url) {
           var image = images_cache.children('img[src="' + encodeURI(url) + '"]')[0];
           return (ls.show_image_width_filter !== 'true' ||
-                   (ls.filter_min_width_enabled !== 'true' || ls.filter_min_width <= image.naturalWidth) &&
-                   (ls.filter_max_width_enabled !== 'true' || image.naturalWidth <= ls.filter_max_width)
-                 ) &&
-                 (ls.show_image_height_filter !== 'true' ||
-                   (ls.filter_min_height_enabled !== 'true' || ls.filter_min_height <= image.naturalHeight) &&
-                   (ls.filter_max_height_enabled !== 'true' || image.naturalHeight <= ls.filter_max_height)
-                 );
+            (ls.filter_min_width_enabled !== 'true' || ls.filter_min_width <= image.naturalWidth) &&
+            (ls.filter_max_width_enabled !== 'true' || image.naturalWidth <= ls.filter_max_width)
+          ) &&
+            (ls.show_image_height_filter !== 'true' ||
+              (ls.filter_min_height_enabled !== 'true' || ls.filter_min_height <= image.naturalHeight) &&
+              (ls.filter_max_height_enabled !== 'true' || image.naturalHeight <= ls.filter_max_height)
+            );
         });
       }
 
@@ -389,7 +413,7 @@
       }
       ls.image_count = checkedImages.length;
       ls.image_number = 1;
-      checkedImages.forEach(function(checkedImage) {
+      checkedImages.forEach(function (checkedImage) {
         chrome.downloads.download({ url: checkedImage });
       });
 
@@ -411,7 +435,7 @@
           <label><input type="checkbox" id="dont_show_again_checkbox" />Don\'t show this again</label>\
         </div>'
       )
-      .appendTo('#filters_container');
+        .appendTo('#filters_container');
 
     $('#yes_button, #no_button').on('click', function () {
       ls.show_download_confirmation = !$('#dont_show_again_checkbox').prop('checked');
@@ -448,7 +472,11 @@
   }
 
   $(function () {
-    initializePopup();
     initializeStyles();
+    chrome.windows.getCurrent(function (currentWindow) {
+      chrome.tabs.query({ active: true, windowId: currentWindow.id }, function (activeTabs) {
+        chrome.tabs.executeScript(activeTabs[0].id, { file: '/scripts/send_images.js', allFrames: true });
+      });
+    });
   });
 }(localStorage));

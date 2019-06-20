@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    	<meta charset="UTF-8">
     <title>Image Downloader</title>
 
     <link rel="stylesheet" href="/stylesheets/main.css" type="text/css" />
@@ -88,7 +89,7 @@
             <input type="text" id="folder_name_textbox" placeholder="SAVE TO SUBFOLDER" title="Set the name of the subfolder you want to download the images to." />
           </td>
           <td>
-            <input type="button" id="download_button" class="accent" value="DOWNLOAD" disabled="true" />
+            <input type="button" id="download_button" class="accent" value="下载" disabled="true" />
           </td>
         </tr>
         <tr>
@@ -135,6 +136,23 @@
             </select>
           </td>
         </tr>
+        <tr>
+          <td>
+            <input type="text" id="skuSize" placeholder="尺寸没获取到,联系潘迪海"  />
+          </td>
+          <td>
+            <input type="button"  class="accent copy_btn" value="复制" copy_target="#skuSize" />
+          </td>
+        </tr>
+
+        <tr>
+            <td>
+              <input type="text" id="colors" placeholder="颜色没获取到,联系潘迪海"  />
+            </td>
+            <td>
+              <input type="button"  class="accent copy_btn" value="复制" copy_target="#colors" />
+            </td>
+          </tr>
       </table>
 
       <table class="grid">
